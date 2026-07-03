@@ -8,7 +8,25 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ManualRepository extends JpaRepository<TabelManual, String> {
-    // Fungsi khusus untuk fitur search
-    // Secara otomatis akan menjalankan query: SELECT * FROM tabel_manual WHERE lop ILIKE %search%
-    Page<TabelManual> findByLopContainingIgnoreCase(String lop, Pageable pageable);
+    // Fungsi khusus untuk fitur search dan filter
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM TabelManual t WHERE " +
+       "(:search = '' OR LOWER(t.lop) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+       "(:region = '' OR LOWER(t.region) LIKE LOWER(CONCAT('%', :region, '%'))) AND " +
+       "(:branch = '' OR LOWER(t.branch) LIKE LOWER(CONCAT('%', :branch, '%'))) " +
+       "ORDER BY t.lop ASC")
+    Page<TabelManual> findWithFilters(@org.springframework.data.repository.query.Param("search") String search, 
+                                      @org.springframework.data.repository.query.Param("region") String region, 
+                                      @org.springframework.data.repository.query.Param("branch") String branch, 
+                                      Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM TabelManual t WHERE " +
+       "(:search = '' OR LOWER(t.lop) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+       "(:region = '' OR LOWER(t.region) LIKE LOWER(CONCAT('%', :region, '%'))) AND " +
+       "(:branch = '' OR LOWER(t.branch) LIKE LOWER(CONCAT('%', :branch, '%'))) " +
+       "ORDER BY t.lop ASC")
+    java.util.List<TabelManual> findAllWithFiltersUnpaginated(
+        @org.springframework.data.repository.query.Param("search") String search, 
+        @org.springframework.data.repository.query.Param("region") String region, 
+        @org.springframework.data.repository.query.Param("branch") String branch
+    );
 }
