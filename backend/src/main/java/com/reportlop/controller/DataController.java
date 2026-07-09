@@ -18,7 +18,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Sangat penting! Mencegah error CORS saat diakses oleh React JS
+@CrossOrigin(origins = "*") // Mencegah error CORS saat diakses oleh React JS
 public class DataController {
 
     @Autowired
@@ -134,5 +134,31 @@ public class DataController {
         headers.add("Content-Disposition", "attachment; filename=\"data_manual.csv\"");
         
         return new ResponseEntity<>(csv.toString(), headers, org.springframework.http.HttpStatus.OK);
+    }
+
+    // 7. Endpoint GET untuk Statistik Dashboard Analytics
+    @GetMapping("/stats")
+    public ResponseEntity<?> getDashboardStats() {
+        try {
+            // hitung total manual sebagai 'Tersinkronisasi'
+            long totalManual = manualRepository.count();
+            
+            // hitung total Horas yang belum tersinkronisasi murni dari view status
+            long unsynced = horasRepository.findAll().stream()
+                .filter(h -> "tidak ada".equalsIgnoreCase(h.getStatus()))
+                .count();
+                
+            long totalData = totalManual + unsynced;
+            double percentage = totalData > 0 ? ((double) totalManual / totalData) * 100 : 0;
+            
+            return ResponseEntity.ok(Map.of(
+                "totalData", totalData,
+                "totalSynced", totalManual,
+                "totalUnsynced", unsynced,
+                "syncPercentage", percentage
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 }
