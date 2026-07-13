@@ -2,6 +2,38 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
 import useSessionState from '../hooks/useSessionState';
+import Select from 'react-select';
+
+const customSelectStyles = {
+    control: (provided) => ({
+        ...provided,
+        backgroundColor: '#1a1a1a',
+        borderColor: '#444',
+        color: '#e0e0e0',
+        minWidth: '200px',
+        minHeight: '38px'
+    }),
+    menu: (provided) => ({
+        ...provided,
+        backgroundColor: '#1a1a1a',
+        border: '1px solid #444',
+        zIndex: 999
+    }),
+    option: (provided, state) => ({
+        ...provided,
+        backgroundColor: state.isFocused ? '#333' : '#1a1a1a',
+        color: '#e0e0e0',
+        cursor: 'pointer'
+    }),
+    singleValue: (provided) => ({
+        ...provided,
+        color: '#e0e0e0'
+    }),
+    input: (provided) => ({
+        ...provided,
+        color: '#e0e0e0'
+    })
+};
 
 const HorasPage = () => {
     const { showToast } = useOutletContext(); // Mendapatkan fungsi showToast dari Layout
@@ -20,7 +52,48 @@ const HorasPage = () => {
     
     const [selectedRows, setSelectedRows] = useState(new Map());
 
-    const fetchHoras = async () => {
+    // Dropdown Data States
+    const [availableRegions, setAvailableRegions] = useState([]);
+    const [availableBranches, setAvailableBranches] = useState([]);
+
+    // Helper function for Title Case
+    const toTitleCase = (str) => {
+        if (!str) return "";
+        return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    };
+
+    // Fetch Branches function
+    const fetchBranches = async (region) => {
+        try {
+            const url = region 
+                ? `http://localhost:8080/api/horas/branches?region=${encodeURIComponent(region)}`
+                : `http://localhost:8080/api/horas/branches`;
+            const res = await axios.get(url);
+            const uniqueBranches = [...new Set(res.data.map(b => toTitleCase(b)))];
+            setAvailableBranches(uniqueBranches);
+        } catch (err) {
+            console.error("Error fetch branches:", err);
+        }
+    };
+
+    // Fetch Regions on component mount
+    useEffect(() => {
+        axios.get('http://localhost:8080/api/horas/regions')
+             .then(res => {
+                 const uniqueRegions = [...new Set(res.data.map(r => toTitleCase(r)))];
+                 setAvailableRegions(uniqueRegions);
+             })
+             .catch(err => console.error("Error fetch regions:", err));
+    }, []);
+
+    // Fetch Branches when Regional filter changes
+    useEffect(() => {
+        fetchBranches(filterRegionalHoras);
+        // Reset selected branch if it's no longer valid for this region
+        if (!filterRegionalHoras && filterBranchHoras !== "") {
+            setFilterBranchHoras("");
+        }
+    }, [filterRegionalHoras]);    const fetchHoras = async () => {
         setIsLoadingHoras(true);
         try {
             const res = await axios.get(`http://localhost:8080/api/horas?page=${pageHoras}&size=${pageSizeHoras}&search=${searchHoras}&regional=${filterRegionalHoras}&branch=${filterBranchHoras}&status=${filterStatusHoras}`);
@@ -146,20 +219,34 @@ const HorasPage = () => {
                     }} 
                     style={{ flex: '1', minWidth: '200px' }}
                 />
-                <input 
-                    type="text" 
-                    className="input-field"
-                    placeholder="Filter Regional..." 
-                    value={filterRegionalHoras} 
-                    onChange={(e) => { setFilterRegionalHoras(e.target.value); setPageHoras(0); }} 
-                />
-                <input 
-                    type="text" 
-                    className="input-field"
-                    placeholder="Filter Branch..." 
-                    value={filterBranchHoras} 
-                    onChange={(e) => { setFilterBranchHoras(e.target.value); setPageHoras(0); }} 
-                />
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                    <Select
+                        styles={customSelectStyles}
+                        placeholder="Filter Regional..."
+                        value={filterRegionalHoras ? { value: filterRegionalHoras, label: filterRegionalHoras } : null}
+                        onChange={(selectedOption) => { 
+                            setFilterRegionalHoras(selectedOption ? selectedOption.value : ""); 
+                            setPageHoras(0); 
+                        }}
+                        options={[{ value: "", label: "Semua Region" }, ...availableRegions.map(r => ({ value: r, label: r }))]}
+                        isClearable
+                        isSearchable
+                    />
+                </div>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                    <Select
+                        styles={customSelectStyles}
+                        placeholder="Filter Branch..."
+                        value={filterBranchHoras ? { value: filterBranchHoras, label: filterBranchHoras } : null}
+                        onChange={(selectedOption) => { 
+                            setFilterBranchHoras(selectedOption ? selectedOption.value : ""); 
+                            setPageHoras(0); 
+                        }}
+                        options={[{ value: "", label: "Semua Branch" }, ...availableBranches.map(b => ({ value: b, label: b }))]}
+                        isClearable
+                        isSearchable
+                    />
+                </div>
                 <select 
                     className="input-field"
                     value={filterStatusHoras} 
