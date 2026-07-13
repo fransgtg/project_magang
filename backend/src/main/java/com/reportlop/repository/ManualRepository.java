@@ -29,4 +29,13 @@ public interface ManualRepository extends JpaRepository<TabelManual, String> {
         @org.springframework.data.repository.query.Param("region") String region, 
         @org.springframework.data.repository.query.Param("branch") String branch
     );
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT t.region FROM TabelManual t WHERE t.region IS NOT NULL AND t.region != '' ORDER BY t.region ASC")
+    java.util.List<String> findDistinctRegion();
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT t.branch FROM TabelManual t WHERE LOWER(t.region) = LOWER(:region) AND t.branch IS NOT NULL AND t.branch != '' ORDER BY t.branch ASC")
+    java.util.List<String> findDistinctBranchByRegion(@org.springframework.data.repository.query.Param("region") String region);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT t.branch FROM TabelManual t WHERE t.branch IS NOT NULL AND t.branch != '' ORDER BY t.branch ASC")
+    java.util.List<String> findAllDistinctBranch();
 }

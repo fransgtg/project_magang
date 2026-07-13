@@ -1,4 +1,4 @@
-package com.reportlop.controller; // Sesuaikan dengan nama package kamu
+package com.reportlop.controller;
 
 import com.reportlop.model.TabelManual;
 import com.reportlop.model.ViewHorasStatus;
@@ -94,7 +94,40 @@ public class DataController {
         }
     }
 
-    // 5. Endpoint DELETE untuk Menghapus Data dari Tabel Manual
+    // 5. Endpoint POST untuk Membuat Data Baru di Tabel Manual
+    @PostMapping("/manual")
+    public ResponseEntity<?> createManualData(@RequestBody TabelManual dataBaru) {
+        try {
+            if (dataBaru.getId() == null || dataBaru.getId().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "ID tidak boleh kosong"));
+            }
+            if (manualRepository.existsById(dataBaru.getId())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Data dengan ID tersebut sudah ada"));
+            }
+            manualRepository.save(dataBaru);
+            return ResponseEntity.ok(Map.of("message", "Data berhasil ditambahkan"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // 6. Endpoint PUT untuk Memperbarui Data di Tabel Manual
+    @PutMapping("/manual/{id}")
+    public ResponseEntity<?> updateManualData(@PathVariable String id, @RequestBody TabelManual dataUpdate) {
+        try {
+            if (!manualRepository.existsById(id)) {
+                return ResponseEntity.notFound().build();
+            }
+            // Pastikan ID di entitas diset dengan benar (menghindari pergantian ID tanpa sengaja)
+            dataUpdate.setId(id);
+            manualRepository.save(dataUpdate);
+            return ResponseEntity.ok(Map.of("message", "Data berhasil diperbarui"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // 7. Endpoint DELETE untuk Menghapus Data dari Tabel Manual
     @DeleteMapping("/manual")
     public ResponseEntity<?> deleteManualData(@RequestParam String id) {
         try {
@@ -108,7 +141,50 @@ public class DataController {
         }
     }
 
-    // 6. Endpoint GET untuk Export CSV Tabel Manual
+    // 8. Endpoints untuk Filter Dinamis (Dropdown)
+    @GetMapping("/horas/regions")
+    public ResponseEntity<List<String>> getHorasRegions() {
+        try {
+            return ResponseEntity.ok(horasRepository.findDistinctRegional());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/horas/branches")
+    public ResponseEntity<List<String>> getHorasBranches(@RequestParam(required = false) String region) {
+        try {
+            if (region == null || region.trim().isEmpty()) {
+                return ResponseEntity.ok(horasRepository.findAllDistinctBranch());
+            }
+            return ResponseEntity.ok(horasRepository.findDistinctBranchByRegional(region));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/manual/regions")
+    public ResponseEntity<List<String>> getManualRegions() {
+        try {
+            return ResponseEntity.ok(manualRepository.findDistinctRegion());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/manual/branches")
+    public ResponseEntity<List<String>> getManualBranches(@RequestParam(required = false) String region) {
+        try {
+            if (region == null || region.trim().isEmpty()) {
+                return ResponseEntity.ok(manualRepository.findAllDistinctBranch());
+            }
+            return ResponseEntity.ok(manualRepository.findDistinctBranchByRegion(region));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 9. Endpoint GET untuk Export CSV Tabel Manual
     @GetMapping(value = "/manual/export", produces = "text/csv")
     public ResponseEntity<String> exportManualData(
             @RequestParam(defaultValue = "") String search,

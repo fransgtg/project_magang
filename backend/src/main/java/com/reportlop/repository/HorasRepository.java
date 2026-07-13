@@ -20,4 +20,13 @@ public interface HorasRepository extends JpaRepository<ViewHorasStatus, String> 
                                           @org.springframework.data.repository.query.Param("branch") String branch, 
                                           @org.springframework.data.repository.query.Param("status") String status, 
                                           Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT v.regional FROM ViewHorasStatus v WHERE v.regional IS NOT NULL AND v.regional != '' ORDER BY v.regional ASC")
+    java.util.List<String> findDistinctRegional();
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT v.branch FROM ViewHorasStatus v WHERE LOWER(v.regional) = LOWER(:regional) AND v.branch IS NOT NULL AND v.branch != '' ORDER BY v.branch ASC")
+    java.util.List<String> findDistinctBranchByRegional(@org.springframework.data.repository.query.Param("regional") String regional);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT v.branch FROM ViewHorasStatus v WHERE v.branch IS NOT NULL AND v.branch != '' ORDER BY v.branch ASC")
+    java.util.List<String> findAllDistinctBranch();
 }
